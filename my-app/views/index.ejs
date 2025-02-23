@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Test</title>
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+    <script src="/javascripts/getLoc.js"></script>
+  </head>
+  <body>
+    <h1>Access Your GPS Location</h1>
+  <p>Click the button below to get your current GPS coordinates and send them to the server.</p>
+
+  <!-- Fix: call getLocation(), not showPosition() -->
+  <button onclick="getLocation()">Get Location</button>
+
+  <div id="location"></div>
+  <div id="error"></div>
+  </body>
+</html>

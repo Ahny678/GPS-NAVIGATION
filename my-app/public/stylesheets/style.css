@@ -1,0 +1,26 @@
+
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    #location {
+      margin-top: 20px;
+      font-size: 18px;
+      color: #333;
+    }
+    #error {
+      color: red;
+      font-size: 18px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+  
