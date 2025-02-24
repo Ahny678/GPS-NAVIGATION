@@ -1,6 +1,10 @@
 function getLocation() {
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(showPosition, showError);
+      navigator.geolocation.getCurrentPosition(showPosition, showError,{
+      enableHighAccuracy: true, // Try to get high accuracy location
+      timeout: 10000, // Wait at most 10 seconds for location
+      maximumAge: 0  // Do not use cached location
+      });
     } else {
       document.getElementById("error").innerHTML = "Geolocation is not supported by this browser.";
     }
