@@ -3,7 +3,7 @@ function getLocation() {
       navigator.geolocation.getCurrentPosition(showPosition, showError,{
       enableHighAccuracy: true, // Try to get high accuracy location
       timeout: 10000, // Wait at most 10 seconds for location
-      maximumAge: 0  // Do not use cached location
+      maximumAge: 0  // Do not use cached locationgit p
       });
     } else {
       document.getElementById("error").innerHTML = "Geolocation is not supported by this browser.";
