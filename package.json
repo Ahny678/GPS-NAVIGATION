@@ -19,6 +19,7 @@
   "homepage": "https://github.com/Ahny678/GPS-NAVIGATION#readme",
   "dependencies": {
     "cookie-parser": "^1.4.7",
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "morgan": "^1.10.0"
   }
 }
