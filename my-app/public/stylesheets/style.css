@@ -7,10 +7,15 @@ body {
   font-family: Arial, sans-serif;
   margin: 0;
   padding: 40px;
-  background-color: #000; /* Black background */
+  /* background-color: #000; Black background */
   color: #fff; /* White text */
   line-height: 1.6;
   text-align: center; /* Center headings and general text */
+
+  /* Background image with black overlay */
+  background: linear-gradient(rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.85)),
+    /* black mask */ url("/images/2.jpg") no-repeat center center fixed; /* your image path */
+  background-size: cover; /* scale image to cover viewport */
 }
 
 .container {
