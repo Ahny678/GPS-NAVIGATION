@@ -6,39 +6,75 @@
     <script src="/javascripts/getLoc.js"></script>
   </head>
   <body>
-    <h1>Access Your GPS Location</h1>
-    <p>
-      Click the button below to get your current GPS coordinates and send them
-      to the server.
-    </p>
+    <div class="container">
+      <h1>Access Your GPS Location</h1>
+      <p>
+        Click the button below to get your current GPS coordinates and send them
+        to the server.
+      </p>
 
-    <!-- Fix: call getLocation(), not showPosition() -->
-    <button onclick="getLocation()">Get Location</button>
+      <button onclick="getLocation()">Get Location</button>
 
-    <div id="location"></div>
-    <div id="error"></div>
+      <div id="location"></div>
+      <div id="error"></div>
 
-    <h1><%= title %></h1>
+      <h1><%= title %></h1>
 
-    <h3>ESP32 Status</h3>
-    <p id="gpsData">Distance to obstacle: <%= espStatus.distance %> cm</p>
-    <p id="targetDistance">
-      Distance to target: <%= espStatus.targetDistance %> meters
-    </p>
-    <p id="gpsCoords">
-      Current GPS: Lat=<%= espStatus.lat %>, Lon=<%= espStatus.lon %>
-    </p>
-    <p id="yaw">Yaw: <%= espStatus.yaw %>°</p>
-    <p id="status">Status: <%= espStatus.status %></p>
-    <p id="obstacle">Obstacle: <%= espStatus.obstacle %></p>
-    <p id="satellites">Satellites: <%= espStatus.satellites %></p>
-    <p id="mapLink">
-      <a
-        href="https://www.google.com/maps?q=<%= espStatus.lat %>,<%= espStatus.lon %>"
-        target="_blank"
-        >View on Google Maps</a
-      >
-    </p>
+      <h3>ESP32 Status</h3>
+
+      <div class="status-list">
+        <div class="status-item">
+          <span class="label">Distance to obstacle:</span>
+          <span class="value" id="gpsData"><%= espStatus.distance %> cm</span>
+        </div>
+
+        <div class="status-item">
+          <span class="label">Distance to target:</span>
+          <span class="value" id="targetDistance"
+            ><%= espStatus.targetDistance %> meters</span
+          >
+        </div>
+
+        <div class="status-item">
+          <span class="label">Current GPS:</span>
+          <span class="value" id="gpsCoords"
+            >Lat=<%= espStatus.lat %>, Lon=<%= espStatus.lon %></span
+          >
+        </div>
+
+        <div class="status-item">
+          <span class="label">Yaw:</span>
+          <span class="value" id="yaw"><%= espStatus.yaw %>°</span>
+        </div>
+
+        <div class="status-item">
+          <span class="label">Status:</span>
+          <span class="value" id="status"><%= espStatus.status %></span>
+        </div>
+
+        <div class="status-item">
+          <span class="label">Obstacle:</span>
+          <span class="value" id="obstacle"><%= espStatus.obstacle %></span>
+        </div>
+
+        <div class="status-item">
+          <span class="label">Satellites:</span>
+          <span class="value" id="satellites"><%= espStatus.satellites %></span>
+        </div>
+
+        <div class="status-item">
+          <span class="label">Map:</span>
+          <span class="value" id="mapLink">
+            <a
+              href="https://www.google.com/maps?q=<%= espStatus.lat %>,<%= espStatus.lon %>"
+              target="_blank"
+            >
+              View on Google Maps
+            </a>
+          </span>
+        </div>
+      </div>
+    </div>
 
     <script>
       setInterval(() => {
@@ -46,18 +82,15 @@
           .then((res) => res.json())
           .then((data) => {
             document.getElementById("gpsData").innerText =
-              "Distance to obstacle: " + data.distance + " cm";
+              data.distance + " cm";
             document.getElementById("targetDistance").innerText =
-              "Distance to target: " + data.targetDistance + " meters";
+              data.targetDistance + " meters";
             document.getElementById("gpsCoords").innerText =
-              "Current GPS: Lat=" + data.lat + ", Lon=" + data.lon;
-            document.getElementById("yaw").innerText = "Yaw: " + data.yaw + "°";
-            document.getElementById("status").innerText =
-              "Status: " + data.status;
-            document.getElementById("obstacle").innerText =
-              "Obstacle: " + data.obstacle;
-            document.getElementById("satellites").innerText =
-              "Satellites: " + data.satellites;
+              "Lat=" + data.lat + ", Lon=" + data.lon;
+            document.getElementById("yaw").innerText = data.yaw + "°";
+            document.getElementById("status").innerText = data.status;
+            document.getElementById("obstacle").innerText = data.obstacle;
+            document.getElementById("satellites").innerText = data.satellites;
             document.getElementById(
               "mapLink"
             ).innerHTML = `<a href="https://www.google.com/maps?q=${data.lat},${data.lon}" target="_blank">View on Google Maps</a>`;

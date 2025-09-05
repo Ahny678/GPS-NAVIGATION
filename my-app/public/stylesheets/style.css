@@ -1,26 +1,97 @@
+/* Global */
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 40px;
+  background-color: #000;
+  color: #fff;
+  line-height: 1.6;
+  text-align: center;
+}
 
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-    }
-    #location {
-      margin-top: 20px;
-      font-size: 18px;
-      color: #333;
-    }
-    #error {
-      color: red;
-      font-size: 18px;
-    }
-    button {
-      padding: 10px 20px;
-      font-size: 16px;
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #45a049;
-    }
-  
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Headings */
+h1 {
+  font-size: 2.2rem;
+  margin-bottom: 20px;
+}
+
+h3 {
+  margin-top: 30px;
+  margin-bottom: 15px;
+  font-size: 1.4rem;
+  border-bottom: 1px solid #444;
+  padding-bottom: 5px;
+}
+
+/* Status list */
+.status-list {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* center the whole block */
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.status-item {
+  display: flex;
+  justify-content: space-between; /* push label left, value right */
+  width: 100%;
+  max-width: 500px; /* neat centered block */
+  font-size: 1rem;
+  text-align: left;
+}
+
+.label {
+  font-weight: bold;
+}
+
+.value {
+  text-align: right;
+}
+
+/* Error message */
+#error {
+  color: #ff4444;
+  font-size: 1.1rem;
+  margin-top: 15px;
+  font-weight: bold;
+}
+
+/* Buttons */
+button {
+  padding: 12px 24px;
+  margin: 20px 0;
+  font-size: 16px;
+  background-color: #fff;
+  color: #000;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: bold;
+}
+
+button:hover {
+  background-color: #ddd;
+}
+
+/* Links */
+a {
+  color: #fff;
+  text-decoration: none;
+  font-weight: bold;
+  padding: 6px 12px;
+  border: 1px solid #fff;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+a:hover {
+  background-color: #fff;
+  color: #000;
+}
