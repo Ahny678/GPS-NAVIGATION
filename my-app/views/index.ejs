@@ -2,16 +2,14 @@
 <html>
   <head>
     <title>Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="stylesheet" href="/stylesheets/style.css" />
     <script src="/javascripts/getLoc.js"></script>
   </head>
   <body>
     <div class="container">
       <h1>Access Your GPS Location</h1>
-      <p>
-        Click the button below to get your current GPS coordinates and send them
-        to the server.
-      </p>
+      <p>Click the button below to get your current GPS coordinates and send them to the server.</p>
 
       <button onclick="getLocation()">Get Location</button>
 
@@ -30,16 +28,12 @@
 
         <div class="status-item">
           <span class="label">Distance to target:</span>
-          <span class="value" id="targetDistance"
-            ><%= espStatus.targetDistance %> meters</span
-          >
+          <span class="value" id="targetDistance"><%= espStatus.targetDistance %> meters</span>
         </div>
 
         <div class="status-item">
           <span class="label">Current GPS:</span>
-          <span class="value" id="gpsCoords"
-            >Lat=<%= espStatus.lat %>, Lon=<%= espStatus.lon %></span
-          >
+          <span class="value" id="gpsCoords">Lat=<%= espStatus.lat %>, Lon=<%= espStatus.lon %></span>
         </div>
 
         <div class="status-item">
@@ -65,10 +59,7 @@
         <div class="status-item">
           <span class="label">Map:</span>
           <span class="value" id="mapLink">
-            <a
-              href="https://www.google.com/maps?q=<%= espStatus.lat %>,<%= espStatus.lon %>"
-              target="_blank"
-            >
+            <a href="https://www.google.com/maps?q=<%= espStatus.lat %>,<%= espStatus.lon %>" target="_blank">
               View on Google Maps
             </a>
           </span>
@@ -81,19 +72,15 @@
         fetch("/get-status")
           .then((res) => res.json())
           .then((data) => {
-            document.getElementById("gpsData").innerText =
-              data.distance + " cm";
-            document.getElementById("targetDistance").innerText =
-              data.targetDistance + " meters";
-            document.getElementById("gpsCoords").innerText =
-              "Lat=" + data.lat + ", Lon=" + data.lon;
+            document.getElementById("gpsData").innerText = data.distance + " cm";
+            document.getElementById("targetDistance").innerText = data.targetDistance + " meters";
+            document.getElementById("gpsCoords").innerText = "Lat=" + data.lat + ", Lon=" + data.lon;
             document.getElementById("yaw").innerText = data.yaw + "°";
             document.getElementById("status").innerText = data.status;
             document.getElementById("obstacle").innerText = data.obstacle;
             document.getElementById("satellites").innerText = data.satellites;
-            document.getElementById(
-              "mapLink"
-            ).innerHTML = `<a href="https://www.google.com/maps?q=${data.lat},${data.lon}" target="_blank">View on Google Maps</a>`;
+            document.getElementById("mapLink").innerHTML =
+              `<a href="https://www.google.com/maps?q=${data.lat},${data.lon}" target="_blank">View on Google Maps</a>`;
           });
       }, 86400000);
     </script>

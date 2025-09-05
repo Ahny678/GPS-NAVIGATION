@@ -1,55 +1,61 @@
 /* Global */
+* {
+  box-sizing: border-box;
+}
+
 body {
   font-family: Arial, sans-serif;
   margin: 0;
   padding: 40px;
-  background-color: #000;
-  color: #fff;
+  background-color: #000; /* Black background */
+  color: #fff; /* White text */
   line-height: 1.6;
-  text-align: center;
+  text-align: center; /* Center headings and general text */
 }
 
 .container {
-  max-width: 800px;
+  max-width: 720px;
   margin: 0 auto;
+  padding: 0 16px; /* breathing room on small screens */
 }
 
 /* Headings */
 h1 {
-  font-size: 2.2rem;
-  margin-bottom: 20px;
+  font-size: 2rem;
+  margin: 0 0 20px 0;
 }
 
 h3 {
-  margin-top: 30px;
-  margin-bottom: 15px;
-  font-size: 1.4rem;
+  margin: 30px 0 16px 0;
+  font-size: 1.25rem;
   border-bottom: 1px solid #444;
-  padding-bottom: 5px;
+  padding-bottom: 6px;
 }
 
 /* Status list */
 .status-list {
   display: flex;
   flex-direction: column;
-  align-items: center; /* center the whole block */
+  align-items: center; /* center the block itself */
   gap: 12px;
-  margin-top: 20px;
+  margin-top: 16px;
 }
 
+/* Two-column layout that aligns labels and values perfectly */
 .status-item {
-  display: flex;
-  justify-content: space-between; /* push label left, value right */
+  display: grid;
+  grid-template-columns: 1fr auto; /* label grows, value fits content */
+  align-items: baseline;
+  column-gap: 16px;
   width: 100%;
-  max-width: 500px; /* neat centered block */
-  font-size: 1rem;
-  text-align: left;
+  max-width: 560px; /* centered, tidy width */
+  text-align: left; /* labels read naturally on desktop */
+  padding: 6px 0;
 }
 
 .label {
   font-weight: bold;
 }
-
 .value {
   text-align: right;
 }
@@ -57,30 +63,34 @@ h3 {
 /* Error message */
 #error {
   color: #ff4444;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   margin-top: 15px;
   font-weight: bold;
 }
 
 /* Buttons */
 button {
+  display: inline-block;
   padding: 12px 24px;
   margin: 20px 0;
   font-size: 16px;
-  background-color: #fff;
-  color: #000;
+  background-color: #fff; /* White button */
+  color: #000; /* Black text */
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color 0.2s ease, transform 0.05s ease;
   font-weight: bold;
 }
 
 button:hover {
   background-color: #ddd;
 }
+button:active {
+  transform: scale(0.99);
+}
 
-/* Links */
+/* Links (styled like minimal buttons) */
 a {
   color: #fff;
   text-decoration: none;
@@ -88,10 +98,39 @@ a {
   padding: 6px 12px;
   border: 1px solid #fff;
   border-radius: 4px;
-  transition: all 0.3s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 a:hover {
   background-color: #fff;
   color: #000;
+}
+
+/* --- Responsive tweaks --- */
+@media (max-width: 600px) {
+  body {
+    padding: 28px 0;
+  }
+
+  h1 {
+    font-size: 1.6rem;
+  }
+  h3 {
+    font-size: 1.1rem;
+  }
+
+  /* Stack label/value vertically and center them */
+  .status-item {
+    grid-template-columns: 1fr; /* one column */
+    text-align: center; /* center label */
+  }
+
+  .value {
+    text-align: center; /* center value too */
+    margin-top: 4px; /* small gap between label and value */
+  }
+
+  button {
+    width: 100%;
+  } /* easier tap target on phones */
 }
