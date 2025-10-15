@@ -11,6 +11,9 @@ let espStatus = {
   status: "Disconnected",
   obstacle: "Unknown",
   satellites: 0,
+  targetLat: null,
+  targetLon: null,
+  waypoints: [], // ✅ Add this
 };
 
 // Endpoint for ESP32 to POST status
@@ -31,18 +34,23 @@ router.get("/", (_, res) => {
 });
 
 // Handle receiving coordinates and fetching route
+// Handle receiving coordinates and fetching route
 router.post("/send-coordinates", async function (req, res) {
   const { latitude, longitude } = req.body;
 
   // Replace with your actual API key
   const apiKey = "5b3ce3597851110001cf62489dfc1ea87c8e49589e4456b25f858f02";
 
-  // Coordinates from ESP32 (can be dynamically updated or passed in a request)
-  const esp_lat = 9.5282003;
-  const esp_long = 6.4655235;
+  // Coordinates from ESP32 (live)
+  const esp_lat = espStatus.lat;
+  const esp_long = espStatus.lon;
+
+  // Save target coordinates in espStatus
+  espStatus.targetLat = latitude;
+  espStatus.targetLon = longitude;
 
   try {
-    // Fetch route from OpenRouteService API using axios
+    // Fetch route from OpenRouteService API
     const response = await axios.get(
       "https://api.openrouteservice.org/v2/directions/driving-car",
       {
@@ -58,21 +66,37 @@ router.post("/send-coordinates", async function (req, res) {
       }
     );
 
-    // Extract route data from the API response
-    const routeData = response.data;
-
-    // Log the GeoJSON route data to the console (formatted for easier readability)
-    //console.log('Route data:', JSON.stringify(routeData, null, 2));
-
-    // Extract the first feature
-    const route = routeData.features[0];
-    const steps = route.properties.segments[0].steps;
+    const route = response.data.features[0];
+    const distance = route.properties.summary.distance / 1000; // km
+    const duration = route.properties.summary.duration / 60; // minutes
     const coordinates = route.geometry.coordinates;
     console.log(coordinates);
+
+    // Save useful route info in espStatus
+    espStatus.targetDistance = distance.toFixed(2);
+
+    console.log(
+      `Route found: ${distance.toFixed(2)} km (${duration.toFixed(1)} min)`
+    );
+
+    res.json({
+      message: "Route found successfully",
+      distance: distance.toFixed(2),
+      duration: duration.toFixed(1),
+      targetLat: latitude,
+      targetLon: longitude,
+    });
   } catch (error) {
-    // Handle errors that may occur during the API request
-    console.error("Error fetching route:", error.message || error);
-    res.status(500).json({ message: "Error calculating route" });
+    if (error.response) {
+      console.error("ORS Error:", error.response.data);
+      res.status(400).json({
+        message: "Could not find a valid route between points",
+        orsError: error.response.data,
+      });
+    } else {
+      console.error("Error fetching route:", error.message);
+      res.status(500).json({ message: "Error calculating route" });
+    }
   }
 });
 

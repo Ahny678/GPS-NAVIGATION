@@ -111,6 +111,60 @@ a:hover {
   color: #000;
 }
 
+.set-location {
+  margin-top: 50px;
+  border-top: 1px solid #444;
+  padding-top: 20px;
+}
+
+.coord-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.coord-row label {
+  font-weight: bold;
+}
+
+.coord-row input {
+  padding: 8px;
+  border-radius: 4px;
+  border: none;
+  width: 150px;
+  font-size: 1rem;
+  text-align: center;
+}
+
+.coord-row button {
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: bold;
+  background-color: #fff;
+  color: #000;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.05s ease;
+}
+
+.coord-row button:hover {
+  background-color: #ddd;
+}
+
+.coord-row button:active {
+  transform: scale(0.98);
+}
+
+@media (max-width: 600px) {
+  .coord-row {
+    flex-direction: column;
+  }
+}
+
 /* --- Responsive tweaks --- */
 @media (max-width: 600px) {
   body {

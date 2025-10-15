@@ -8,10 +8,10 @@
   </head>
   <body>
     <div class="container">
-      <h1>Access Your GPS Location</h1>
+      <!-- <h1>Access Your GPS Location</h1>
       <p>Click the button below to get your current GPS coordinates and send them to the server.</p>
 
-      <button onclick="getLocation()">Get Location</button>
+      <button onclick="getLocation()">Get Location</button> -->
 
       <div id="location"></div>
       <div id="error"></div>
@@ -28,12 +28,24 @@
 
         <div class="status-item">
           <span class="label">Distance to target:</span>
-          <span class="value" id="targetDistance"><%= espStatus.targetDistance %> meters</span>
+          <span class="value" id="targetDistance"
+            ><%= espStatus.targetDistance %> meters</span
+          >
         </div>
 
         <div class="status-item">
           <span class="label">Current GPS:</span>
-          <span class="value" id="gpsCoords">Lat=<%= espStatus.lat %>, Lon=<%= espStatus.lon %></span>
+          <span class="value" id="gpsCoords"
+            >Lat=<%= espStatus.lat %>, Lon=<%= espStatus.lon %></span
+          >
+        </div>
+        <div class="status-item">
+          <span class="label">Target GPS:</span>
+          <span class="value" id="targetCoords">
+            <% if (espStatus.targetLat && espStatus.targetLon) { %> Lat=<%=
+            espStatus.targetLat %>, Lon=<%= espStatus.targetLon %> <% } else {
+            %> Not set <% } %>
+          </span>
         </div>
 
         <div class="status-item">
@@ -59,30 +71,153 @@
         <div class="status-item">
           <span class="label">Map:</span>
           <span class="value" id="mapLink">
-            <a href="https://www.google.com/maps?q=<%= espStatus.lat %>,<%= espStatus.lon %>" target="_blank">
+            <a
+              href="https://www.google.com/maps?q=<%= espStatus.lat %>,<%= espStatus.lon %>"
+              target="_blank"
+            >
               View on Google Maps
             </a>
           </span>
         </div>
       </div>
-    </div>
 
-    <script>
-      setInterval(() => {
-        fetch("/get-status")
-          .then((res) => res.json())
-          .then((data) => {
-            document.getElementById("gpsData").innerText = data.distance + " cm";
-            document.getElementById("targetDistance").innerText = data.targetDistance + " meters";
-            document.getElementById("gpsCoords").innerText = "Lat=" + data.lat + ", Lon=" + data.lon;
-            document.getElementById("yaw").innerText = data.yaw + "°";
-            document.getElementById("status").innerText = data.status;
-            document.getElementById("obstacle").innerText = data.obstacle;
-            document.getElementById("satellites").innerText = data.satellites;
-            document.getElementById("mapLink").innerHTML =
-              `<a href="https://www.google.com/maps?q=${data.lat},${data.lon}" target="_blank">View on Google Maps</a>`;
+      <!-- Existing content above remains the same -->
+
+      <div class="set-location">
+        <h3>Set Target Location</h3>
+
+        <div class="coord-row">
+          <label for="latitude">Latitude:</label>
+          <input
+            type="number"
+            id="latitude"
+            name="latitude"
+            step="any"
+            placeholder="Enter latitude"
+          />
+
+          <label for="longitude">Longitude:</label>
+          <input
+            type="number"
+            id="longitude"
+            name="longitude"
+            step="any"
+            placeholder="Enter longitude"
+          />
+
+          <button id="setTarget">Set Target</button>
+          <button id="useCurrentLocation">Use Current Coordinates</button>
+        </div>
+
+        <div
+          id="targetStatus"
+          style="margin-top: 10px; font-weight: bold"
+        ></div>
+      </div>
+
+      <script>
+        // --- Periodic status refresh ---
+        setInterval(() => {
+          fetch("/get-status")
+            .then((res) => res.json())
+            .then((data) => {
+              document.getElementById("gpsData").innerText =
+                data.distance + " cm";
+              document.getElementById("targetDistance").innerText =
+                data.targetDistance + " meters";
+              document.getElementById("gpsCoords").innerText =
+                "Lat=" + data.lat + ", Lon=" + data.lon;
+              document.getElementById("yaw").innerText = data.yaw + "°";
+              document.getElementById("status").innerText = data.status;
+              document.getElementById("obstacle").innerText = data.obstacle;
+              document.getElementById("satellites").innerText = data.satellites;
+              document.getElementById(
+                "mapLink"
+              ).innerHTML = `<a href="https://www.google.com/maps?q=${data.lat},${data.lon}" target="_blank">View on Google Maps</a>`;
+            });
+        }, 86400000);
+
+        // --- Manual coordinate submission ---
+        document
+          .getElementById("setTarget")
+          .addEventListener("click", async () => {
+            const latitude = parseFloat(
+              document.getElementById("latitude").value
+            );
+            const longitude = parseFloat(
+              document.getElementById("longitude").value
+            );
+
+            if (isNaN(latitude) || isNaN(longitude)) {
+              document.getElementById("targetStatus").innerText =
+                "❌ Invalid coordinates entered.";
+              return;
+            }
+
+            try {
+              const res = await fetch("/send-coordinates", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ latitude, longitude }),
+              });
+
+              if (res.ok) {
+                document.getElementById(
+                  "targetStatus"
+                ).innerText = `✅ Target set to Lat=${latitude}, Lon=${longitude}`;
+              } else {
+                document.getElementById("targetStatus").innerText =
+                  "❌ Failed to send coordinates to server.";
+              }
+            } catch (err) {
+              console.error(err);
+              document.getElementById("targetStatus").innerText =
+                "❌ Network error.";
+            }
           });
-      }, 86400000);
-    </script>
+
+        // --- Use current coordinates ---
+        document
+          .getElementById("useCurrentLocation")
+          .addEventListener("click", () => {
+            if (navigator.geolocation) {
+              navigator.geolocation.getCurrentPosition(
+                async (pos) => {
+                  const latitude = pos.coords.latitude;
+                  const longitude = pos.coords.longitude;
+
+                  try {
+                    const res = await fetch("/send-coordinates", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ latitude, longitude }),
+                    });
+
+                    if (res.ok) {
+                      document.getElementById(
+                        "targetStatus"
+                      ).innerText = `✅ Current location set as target (Lat=${latitude}, Lon=${longitude})`;
+                    } else {
+                      document.getElementById("targetStatus").innerText =
+                        "❌ Failed to send current location.";
+                    }
+                  } catch (err) {
+                    console.error(err);
+                    document.getElementById("targetStatus").innerText =
+                      "❌ Network error.";
+                  }
+                },
+                (err) => {
+                  document.getElementById("targetStatus").innerText =
+                    "❌ Error getting location: " + err.message;
+                }
+              );
+            } else {
+              document.getElementById("targetStatus").innerText =
+                "❌ Geolocation not supported by browser.";
+            }
+          });
+      </script>
+    </div>
   </body>
 </html>
