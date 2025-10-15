@@ -70,6 +70,9 @@ router.post("/send-coordinates", async function (req, res) {
     const distance = route.properties.summary.distance / 1000; // km
     const duration = route.properties.summary.duration / 60; // minutes
     const coordinates = route.geometry.coordinates;
+    // after you get route.waypoints
+    espStatus.waypoints = coordinates.map(([lon, lat]) => ({ lat, lon }));
+
     console.log(coordinates);
 
     // Save useful route info in espStatus
@@ -98,6 +101,18 @@ router.post("/send-coordinates", async function (req, res) {
       res.status(500).json({ message: "Error calculating route" });
     }
   }
+});
+
+// ✅ Endpoint for ESP32 to fetch the current route waypoints
+router.get("/get-waypoints", (req, res) => {
+  if (!espStatus.waypoints || espStatus.waypoints.length === 0) {
+    return res.status(404).json({ message: "No route available yet" });
+  }
+  res.json({
+    targetLat: espStatus.targetLat,
+    targetLon: espStatus.targetLon,
+    waypoints: espStatus.waypoints,
+  });
 });
 
 module.exports = router;
