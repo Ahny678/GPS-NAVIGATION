@@ -121,21 +121,47 @@
           fetch("/get-status")
             .then((res) => res.json())
             .then((data) => {
+              // Distance to obstacle
               document.getElementById("gpsData").innerText =
-                data.distance + " cm";
+                (data.distance ?? "N/A") + " cm";
+
+              // Distance to target
               document.getElementById("targetDistance").innerText =
-                data.targetDistance + " meters";
+                (data.targetDistance ?? "N/A") + " meters";
+
+              // Current GPS coordinates
               document.getElementById("gpsCoords").innerText =
-                "Lat=" + data.lat + ", Lon=" + data.lon;
-              document.getElementById("yaw").innerText = data.yaw + "°";
-              document.getElementById("status").innerText = data.status;
-              document.getElementById("obstacle").innerText = data.obstacle;
-              document.getElementById("satellites").innerText = data.satellites;
+                "Lat=" + (data.lat ?? "N/A") + ", Lon=" + (data.lon ?? "N/A");
+
+              // ✅ Target GPS coordinates (added)
+              document.getElementById("targetCoords").innerText =
+                data.targetLat && data.targetLon
+                  ? `Lat=${data.targetLat}, Lon=${data.targetLon}`
+                  : "Not set";
+
+              // Yaw
+              document.getElementById("yaw").innerText =
+                (data.yaw ?? "N/A") + "°";
+
+              // Connection status
+              document.getElementById("status").innerText =
+                data.status ?? "Unknown";
+
+              // Obstacle status
+              document.getElementById("obstacle").innerText =
+                data.obstacle ?? "Unknown";
+
+              // Satellites
+              document.getElementById("satellites").innerText =
+                data.satellites ?? "N/A";
+
+              // Google Maps link
               document.getElementById(
                 "mapLink"
               ).innerHTML = `<a href="https://www.google.com/maps?q=${data.lat},${data.lon}" target="_blank">View on Google Maps</a>`;
-            });
-        }, 86400000);
+            })
+            .catch((err) => console.error("Error fetching status:", err));
+        }, 2000); // refresh every 2 seconds
 
         // --- Manual coordinate submission ---
         document

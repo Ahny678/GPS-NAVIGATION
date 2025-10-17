@@ -18,7 +18,14 @@ let espStatus = {
 
 // Endpoint for ESP32 to POST status
 router.post("/esp-status", (req, res) => {
-  espStatus = { ...req.body, status: "Connected" };
+  espStatus = {
+    ...espStatus,
+    ...req.body,
+    distance: req.body.distance_to_obstacle ?? espStatus.distance,
+    targetDistance: req.body.distance_to_target ?? espStatus.targetDistance,
+    status: "Connected",
+  };
+
   console.log("ESP32 Status Update:", espStatus);
   res.json({ message: "Status received" });
 });
