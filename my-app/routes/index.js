@@ -41,11 +41,9 @@ router.get("/", (_, res) => {
 });
 
 // Handle receiving coordinates and fetching route
-// Handle receiving coordinates and fetching route
 router.post("/send-coordinates", async function (req, res) {
   const { latitude, longitude } = req.body;
 
-  // Replace with your actual API key
   const apiKey = "5b3ce3597851110001cf62489dfc1ea87c8e49589e4456b25f858f02";
 
   // Coordinates from ESP32 (live)
@@ -55,6 +53,26 @@ router.post("/send-coordinates", async function (req, res) {
   // Save target coordinates in espStatus
   espStatus.targetLat = latitude;
   espStatus.targetLon = longitude;
+
+  // ✅ SAFETY CHECK: Ensure ESP32 has a valid GPS fix before routing
+  if (
+    !esp_lat ||
+    !esp_long ||
+    esp_lat === 0 ||
+    esp_long === 0 ||
+    espStatus.satellites === 0
+  ) {
+    console.error("Invalid ESP32 coordinates. Cannot route from 0,0.");
+    return res.status(400).json({
+      message:
+        "ESP32 has no valid GPS fix (lat/lon = 0 or no satellites). Please wait for a GPS lock before calculating a route.",
+      currentESPStatus: {
+        lat: esp_lat,
+        lon: esp_long,
+        satellites: espStatus.satellites,
+      },
+    });
+  }
 
   try {
     // Fetch route from OpenRouteService API
@@ -77,12 +95,9 @@ router.post("/send-coordinates", async function (req, res) {
     const distance = route.properties.summary.distance / 1000; // km
     const duration = route.properties.summary.duration / 60; // minutes
     const coordinates = route.geometry.coordinates;
-    // after you get route.waypoints
+
+    // Save waypoints
     espStatus.waypoints = coordinates.map(([lon, lat]) => ({ lat, lon }));
-
-    console.log(coordinates);
-
-    // Save useful route info in espStatus
     espStatus.targetDistance = distance.toFixed(2);
 
     console.log(

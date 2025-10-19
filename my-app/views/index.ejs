@@ -133,7 +133,7 @@
               document.getElementById("gpsCoords").innerText =
                 "Lat=" + (data.lat ?? "N/A") + ", Lon=" + (data.lon ?? "N/A");
 
-              // ✅ Target GPS coordinates (added)
+              // ✅ Target GPS coordinates
               document.getElementById("targetCoords").innerText =
                 data.targetLat && data.targetLon
                   ? `Lat=${data.targetLat}, Lon=${data.targetLon}`
@@ -173,10 +173,10 @@
             const longitude = parseFloat(
               document.getElementById("longitude").value
             );
+            const statusBox = document.getElementById("targetStatus");
 
             if (isNaN(latitude) || isNaN(longitude)) {
-              document.getElementById("targetStatus").innerText =
-                "❌ Invalid coordinates entered.";
+              statusBox.innerText = "❌ Invalid coordinates entered.";
               return;
             }
 
@@ -187,18 +187,18 @@
                 body: JSON.stringify({ latitude, longitude }),
               });
 
+              const data = await res.json().catch(() => ({}));
+
               if (res.ok) {
-                document.getElementById(
-                  "targetStatus"
-                ).innerText = `✅ Target set to Lat=${latitude}, Lon=${longitude}`;
+                statusBox.innerText = `✅ Target set to Lat=${latitude}, Lon=${longitude}`;
               } else {
-                document.getElementById("targetStatus").innerText =
-                  "❌ Failed to send coordinates to server.";
+                statusBox.innerText = `❌ ${
+                  data.message || "Failed to send coordinates to server."
+                }`;
               }
             } catch (err) {
               console.error(err);
-              document.getElementById("targetStatus").innerText =
-                "❌ Network error.";
+              statusBox.innerText = "❌ Network error.";
             }
           });
 
@@ -206,6 +206,8 @@
         document
           .getElementById("useCurrentLocation")
           .addEventListener("click", () => {
+            const statusBox = document.getElementById("targetStatus");
+
             if (navigator.geolocation) {
               navigator.geolocation.getCurrentPosition(
                 async (pos) => {
@@ -219,28 +221,27 @@
                       body: JSON.stringify({ latitude, longitude }),
                     });
 
+                    const data = await res.json().catch(() => ({}));
+
                     if (res.ok) {
-                      document.getElementById(
-                        "targetStatus"
-                      ).innerText = `✅ Current location set as target (Lat=${latitude}, Lon=${longitude})`;
+                      statusBox.innerText = `✅ Current location set as target (Lat=${latitude}, Lon=${longitude})`;
                     } else {
-                      document.getElementById("targetStatus").innerText =
-                        "❌ Failed to send current location.";
+                      statusBox.innerText = `❌ ${
+                        data.message || "Failed to send current location."
+                      }`;
                     }
                   } catch (err) {
                     console.error(err);
-                    document.getElementById("targetStatus").innerText =
-                      "❌ Network error.";
+                    statusBox.innerText = "❌ Network error.";
                   }
                 },
                 (err) => {
-                  document.getElementById("targetStatus").innerText =
+                  statusBox.innerText =
                     "❌ Error getting location: " + err.message;
                 }
               );
             } else {
-              document.getElementById("targetStatus").innerText =
-                "❌ Geolocation not supported by browser.";
+              statusBox.innerText = "❌ Geolocation not supported by browser.";
             }
           });
       </script>
