@@ -13,10 +13,11 @@ let espStatus = {
   satellites: 0,
   targetLat: null,
   targetLon: null,
-  waypoints: [], // ✅ Add this
+  waypoints: [],
+  navigationActive: false, // ✅ new flag
 };
 
-// Endpoint for ESP32 to POST status
+// ESP → server: status updates
 router.post("/esp-status", (req, res) => {
   espStatus = {
     ...espStatus,
@@ -30,31 +31,27 @@ router.post("/esp-status", (req, res) => {
   res.json({ message: "Status received" });
 });
 
-// Endpoint for frontend to fetch ESP32 status
+// Frontend → server: fetch latest ESP status
 router.get("/get-status", (req, res) => {
   res.json(espStatus);
 });
 
-// Home route (render EJS with defaults)
+// Home route
 router.get("/", (_, res) => {
   res.render("index", { title: "GPS Navigation", espStatus });
 });
 
-// Handle receiving coordinates and fetching route
-router.post("/send-coordinates", async function (req, res) {
+// Frontend → server: set coordinates & calculate route
+router.post("/send-coordinates", async (req, res) => {
   const { latitude, longitude } = req.body;
-
   const apiKey = "5b3ce3597851110001cf62489dfc1ea87c8e49589e4456b25f858f02";
 
-  // Coordinates from ESP32 (live)
   const esp_lat = espStatus.lat;
   const esp_long = espStatus.lon;
 
-  // Save target coordinates in espStatus
   espStatus.targetLat = latitude;
   espStatus.targetLon = longitude;
 
-  // ✅ SAFETY CHECK: Ensure ESP32 has a valid GPS fix before routing
   if (
     !esp_lat ||
     !esp_long ||
@@ -75,7 +72,6 @@ router.post("/send-coordinates", async function (req, res) {
   }
 
   try {
-    // Fetch route from OpenRouteService API
     const response = await axios.get(
       "https://api.openrouteservice.org/v2/directions/driving-car",
       {
@@ -93,12 +89,12 @@ router.post("/send-coordinates", async function (req, res) {
 
     const route = response.data.features[0];
     const distance = route.properties.summary.distance / 1000; // km
-    const duration = route.properties.summary.duration / 60; // minutes
+    const duration = route.properties.summary.duration / 60; // min
     const coordinates = route.geometry.coordinates;
 
-    // Save waypoints
     espStatus.waypoints = coordinates.map(([lon, lat]) => ({ lat, lon }));
     espStatus.targetDistance = distance.toFixed(2);
+    espStatus.navigationActive = false; // ✅ ensure stopped until user clicks Start
 
     console.log(
       `Route found: ${distance.toFixed(2)} km (${duration.toFixed(1)} min)`
@@ -125,16 +121,40 @@ router.post("/send-coordinates", async function (req, res) {
   }
 });
 
-// ✅ Endpoint for ESP32 to fetch the current route waypoints
+// ✅ ESP → server: fetch waypoints (only if navigation is active)
 router.get("/get-waypoints", (req, res) => {
-  if (!espStatus.waypoints || espStatus.waypoints.length === 0) {
-    return res.status(404).json({ message: "No route available yet" });
+  if (!espStatus.navigationActive) {
+    return res.status(200).json({ message: "Navigation inactive." });
   }
+
+  if (!espStatus.waypoints.length) {
+    return res.status(404).json({ message: "No route available yet." });
+  }
+
   res.json({
     targetLat: espStatus.targetLat,
     targetLon: espStatus.targetLon,
     waypoints: espStatus.waypoints,
   });
+});
+
+// ✅ Frontend → server: start navigation
+router.post("/start-navigation", (req, res) => {
+  if (!espStatus.waypoints.length) {
+    return res
+      .status(400)
+      .json({ message: "No waypoints set. Set a target first." });
+  }
+  espStatus.navigationActive = true;
+  console.log("✅ Navigation started (flag=true)");
+  res.json({ message: "Navigation started. ESP will now fetch waypoints." });
+});
+
+// ✅ Frontend → server: stop navigation
+router.post("/stop-navigation", (req, res) => {
+  espStatus.navigationActive = false;
+  console.log("🛑 Navigation stopped (flag=false)");
+  res.json({ message: "Navigation stopped." });
 });
 
 module.exports = router;
