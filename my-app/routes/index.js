@@ -2,6 +2,19 @@ const express = require("express");
 const axios = require("axios");
 const router = express.Router();
 
+// Haversine distance helper (meters)
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371000; // Earth radius (m)
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 let espStatus = {
   distance: 0,
   targetDistance: 0,
@@ -14,7 +27,7 @@ let espStatus = {
   targetLat: null,
   targetLon: null,
   waypoints: [],
-  navigationActive: false, // ✅ new flag
+  navigationActive: false,
 };
 
 // ESP → server: status updates
@@ -72,8 +85,33 @@ router.post("/send-coordinates", async (req, res) => {
   }
 
   try {
+    // Calculate straight-line distance first
+    const directDistance = haversine(esp_lat, esp_long, latitude, longitude);
+
+    // If distance < 30 m, skip API and use direct path
+    if (directDistance < 30) {
+      espStatus.waypoints = [
+        { lat: esp_lat, lon: esp_long },
+        { lat: latitude, lon: longitude },
+      ];
+      espStatus.targetDistance = (directDistance / 1000).toFixed(3);
+      espStatus.navigationActive = false;
+
+      console.log(
+        `Short route (${directDistance.toFixed(1)} m) — direct path used.`
+      );
+      return res.json({
+        message: "Short route, direct path set",
+        distance: (directDistance / 1000).toFixed(3),
+        duration: 0,
+        targetLat: latitude,
+        targetLon: longitude,
+      });
+    }
+
+    // Otherwise, request route from ORS (foot-walking mode)
     const response = await axios.get(
-      "https://api.openrouteservice.org/v2/directions/driving-car",
+      "https://api.openrouteservice.org/v2/directions/foot-walking",
       {
         params: {
           api_key: apiKey,
@@ -92,12 +130,15 @@ router.post("/send-coordinates", async (req, res) => {
     const duration = route.properties.summary.duration / 60; // min
     const coordinates = route.geometry.coordinates;
 
+    // Set route waypoints
     espStatus.waypoints = coordinates.map(([lon, lat]) => ({ lat, lon }));
     espStatus.targetDistance = distance.toFixed(2);
-    espStatus.navigationActive = false; // ✅ ensure stopped until user clicks Start
+    espStatus.navigationActive = false;
 
     console.log(
-      `Route found: ${distance.toFixed(2)} km (${duration.toFixed(1)} min)`
+      `Route found (foot-walking): ${distance.toFixed(
+        2
+      )} km (${duration.toFixed(1)} min)`
     );
 
     res.json({
