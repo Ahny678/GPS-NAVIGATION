@@ -10,6 +10,8 @@ let espStatus = {
   yaw: 0,
   status: "Disconnected",
   obstacle: "Unknown",
+  distance: null, // obstacle distance in cm
+  targetDistance: null, // distance to target in meters
   satellites: 0,
   targetLat: null,
   targetLon: null,
@@ -21,7 +23,13 @@ let espStatus = {
 // -----------------------------
 router.post("/esp-status", (req, res) => {
   const { ...rest } = req.body;
-  espStatus = { ...espStatus, ...rest, status: "Connected" };
+  espStatus = {
+    ...espStatus,
+    ...rest,
+    distance: rest.distance_to_obstacle, // <- add this
+    targetDistance: rest.distance_to_target, // <- add this
+    status: "Connected",
+  };
   console.log("ESP32 Status Update:", espStatus);
   res.json({ message: "Status received" });
 });
