@@ -34,32 +34,23 @@ let espStatus = {
   waypoints: [],
   navigationActive: false,
 };
-// let espStatus = {
-//   distance: 0,
-//   targetDistance: 0,
-//   lat: 6.4288, // ✅ about 16–20 m away from your target
-//   lon: 3.3691, // ✅ close enough to trigger <30m
-//   yaw: 0,
-//   status: "Testing Mode", // ✅ So you can see it’s in test mode
-//   obstacle: "None",
-//   satellites: 10, // ✅ Pretend GPS fix is good
-//   targetLat: null,
-//   targetLon: null,
-//   waypoints: [],
-//   navigationActive: false,
-// };
 
 // -----------------------------
 // 🔄 ESP → Server: Status Updates
 // -----------------------------
 router.post("/esp-status", (req, res) => {
+  const { waypoints, ...rest } = req.body; // ignore ESP waypoints
+
   espStatus = {
     ...espStatus,
-    ...req.body,
+    ...rest,
     distance: req.body.distance_to_obstacle ?? espStatus.distance,
     targetDistance: req.body.distance_to_target ?? espStatus.targetDistance,
     status: "Connected",
   };
+
+  if (waypoints)
+    console.warn("⚠️ Ignored ESP waypoints (server uses its own route).");
 
   console.log("ESP32 Status Update:", espStatus);
   res.json({ message: "Status received" });
@@ -82,8 +73,6 @@ router.get("/", (_, res) => {
 // -----------------------------
 // 📍 Frontend → Server: Set Target & Calculate Route
 // -----------------------------
-
-// 🧭 Store Target Only (No route calculation)
 router.post("/set-target", (req, res) => {
   const { latitude, longitude } = req.body;
   if (!latitude || !longitude) {
@@ -102,7 +91,6 @@ router.post("/send-coordinates", async (req, res) => {
   const { latitude, longitude } = req.body;
   const apiKey = "5b3ce3597851110001cf62489dfc1ea87c8e49589e4456b25f858f02";
 
-  // Always pull latest ESP coordinates
   const esp_lat = parseFloat(espStatus.lat);
   const esp_long = parseFloat(espStatus.lon);
 
@@ -116,10 +104,9 @@ router.post("/send-coordinates", async (req, res) => {
     esp_long === 0 ||
     espStatus.satellites === 0
   ) {
-    console.error("Invalid ESP32 coordinates. Cannot route from 0,0.");
     return res.status(400).json({
       message:
-        "ESP32 has no valid GPS fix (lat/lon = 0 or no satellites). Please wait for a GPS lock before calculating a route.",
+        "ESP32 has no valid GPS fix (lat/lon = 0 or no satellites). Please wait for a GPS lock.",
       currentESPStatus: {
         lat: esp_lat,
         lon: esp_long,
@@ -128,11 +115,11 @@ router.post("/send-coordinates", async (req, res) => {
     });
   }
 
-  // ✅ Step 1: Always compute distance first
+  // Compute direct distance
   const directDistance = haversine(esp_lat, esp_long, latitude, longitude);
   console.log(`Computed direct distance: ${directDistance.toFixed(2)} m`);
 
-  // ✅ Step 2: Short distance (under 30 m) = skip ORS entirely
+  // Short distance: use direct path
   if (directDistance < 30) {
     espStatus.waypoints = [
       { lat: esp_lat, lon: esp_long },
@@ -159,7 +146,7 @@ router.post("/send-coordinates", async (req, res) => {
     });
   }
 
-  // ✅ Step 3: Otherwise, fetch full route from ORS
+  // Otherwise, fetch route from ORS
   try {
     const response = await axios.get(
       "https://api.openrouteservice.org/v2/directions/foot-walking",
@@ -197,6 +184,7 @@ router.post("/send-coordinates", async (req, res) => {
       duration: duration.toFixed(1),
       targetLat: latitude,
       targetLon: longitude,
+      waypoints: espStatus.waypoints,
     });
   } catch (error) {
     if (error.response) {
@@ -243,7 +231,11 @@ router.post("/start-navigation", (req, res) => {
 
   espStatus.navigationActive = true;
   console.log("✅ Navigation started (flag=true)");
-  res.json({ message: "Navigation started. ESP will now fetch waypoints." });
+
+  res.json({
+    message: "Navigation started. ESP will now fetch waypoints.",
+    waypoints: espStatus.waypoints,
+  });
 });
 
 // -----------------------------

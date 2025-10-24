@@ -30,9 +30,9 @@
         <div class="status-item">
           <span class="label">Target GPS:</span>
           <span class="value" id="targetCoords">
-            <% if (espStatus.targetLat && espStatus.targetLon) { %> Lat=<%=
-            espStatus.targetLat %>, Lon=<%= espStatus.targetLon %> <% } else {
-            %> Not set <% } %>
+            <% if (espStatus.targetLat != null && espStatus.targetLon != null) {
+            %> Lat=<%= espStatus.targetLat %>, Lon=<%= espStatus.targetLon %> <%
+            } else { %> Not set <% } %>
           </span>
         </div>
         <div class="status-item">
@@ -54,11 +54,13 @@
         <div class="status-item">
           <span class="label">Map:</span>
           <span class="value" id="mapLink">
+            <% if (espStatus.lat != null && espStatus.lon != null) { %>
             <a
               href="https://www.google.com/maps?q=<%= espStatus.lat %>,<%= espStatus.lon %>"
               target="_blank"
               >View on Google Maps</a
             >
+            <% } else { %> N/A <% } %>
           </span>
         </div>
       </div>
@@ -98,6 +100,10 @@
           Stop
         </button>
         <div id="navStatus" style="margin-top: 10px; font-weight: bold"></div>
+        <div
+          id="waypointsDebug"
+          style="margin-top: 10px; font-weight: bold; color: blue"
+        ></div>
       </div>
 
       <script>
@@ -113,7 +119,7 @@
               document.getElementById("gpsCoords").innerText =
                 "Lat=" + (data.lat ?? "N/A") + ", Lon=" + (data.lon ?? "N/A");
               document.getElementById("targetCoords").innerText =
-                data.targetLat && data.targetLon
+                data.targetLat != null && data.targetLon != null
                   ? `Lat=${data.targetLat}, Lon=${data.targetLon}`
                   : "Not set";
               document.getElementById("yaw").innerText =
@@ -124,14 +130,15 @@
                 data.obstacle ?? "Unknown";
               document.getElementById("satellites").innerText =
                 data.satellites ?? "N/A";
-              document.getElementById(
-                "mapLink"
-              ).innerHTML = `<a href="https://www.google.com/maps?q=${data.lat},${data.lon}" target="_blank">View on Google Maps</a>`;
+              document.getElementById("mapLink").innerHTML =
+                data.lat != null && data.lon != null
+                  ? `<a href="https://www.google.com/maps?q=${data.lat},${data.lon}" target="_blank">View on Google Maps</a>`
+                  : "N/A";
             })
             .catch((err) => console.error("Error fetching status:", err));
         }, 2000);
 
-        // --- Set target manually (store only) ---
+        // --- Set target manually ---
         document
           .getElementById("setTarget")
           .addEventListener("click", async () => {
@@ -163,7 +170,7 @@
             }
           });
 
-        // --- Use current coordinates (store only) ---
+        // --- Use current coordinates ---
         document
           .getElementById("useCurrentLocation")
           .addEventListener("click", () => {
@@ -197,23 +204,28 @@
             );
           });
 
-        // --- Start navigation (calculate + activate) ---
+        // --- Start navigation with waypoint confirmation ---
         document
           .getElementById("startNav")
           .addEventListener("click", async () => {
             const navStatus = document.getElementById("navStatus");
+            const waypointsDebug = document.getElementById("waypointsDebug");
+            waypointsDebug.innerText = "";
             navStatus.innerText = "⏳ Calculating route...";
+
             try {
-              // Get stored target
               const currentStatus = await fetch("/get-status").then((r) =>
                 r.json()
               );
-              if (!currentStatus.targetLat || !currentStatus.targetLon) {
+              if (
+                currentStatus.targetLat == null ||
+                currentStatus.targetLon == null
+              ) {
                 navStatus.innerText = "❌ No target set.";
                 return;
               }
 
-              // Step 1: Calculate route or direct path
+              // Step 1: calculate route
               const res1 = await fetch("/send-coordinates", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -229,13 +241,26 @@
                 return;
               }
 
-              // Step 2: Start navigation
-              navStatus.innerText = "✅ Route ready. Starting navigation...";
+              // Step 2: start navigation
               const res2 = await fetch("/start-navigation", { method: "POST" });
               const startData = await res2.json();
-              navStatus.innerText = res2.ok
-                ? "🚀 " + startData.message
-                : "❌ " + (startData.message || "Failed to start navigation.");
+              if (!res2.ok) {
+                navStatus.innerText =
+                  "❌ " + (startData.message || "Failed to start navigation.");
+                return;
+              }
+
+              navStatus.innerText = "🚀 " + startData.message;
+
+              // Step 3: fetch and show waypoints for confirmation
+              const wpRes = await fetch("/get-waypoints");
+              const wpData = await wpRes.json();
+              if (wpData.waypoints && wpData.waypoints.length) {
+                waypointsDebug.innerText =
+                  "📍 Waypoints: " + JSON.stringify(wpData.waypoints, null, 2);
+              } else {
+                waypointsDebug.innerText = "⚠️ No waypoints returned.";
+              }
             } catch (err) {
               navStatus.innerText = "❌ " + err.message;
             }
@@ -246,7 +271,9 @@
           .getElementById("stopNav")
           .addEventListener("click", async () => {
             const navStatus = document.getElementById("navStatus");
+            const waypointsDebug = document.getElementById("waypointsDebug");
             navStatus.innerText = "⏳ Stopping navigation...";
+            waypointsDebug.innerText = "";
             try {
               const res = await fetch("/stop-navigation", { method: "POST" });
               const data = await res.json();
