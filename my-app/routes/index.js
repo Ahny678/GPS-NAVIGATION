@@ -2,7 +2,9 @@ const express = require("express");
 const axios = require("axios");
 const router = express.Router();
 
-// Haversine distance helper (meters)
+// -----------------------------
+// 🌍 Haversine Distance (in meters)
+// -----------------------------
 function haversine(lat1, lon1, lat2, lon2) {
   const R = 6371000; // Earth radius (m)
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -15,6 +17,9 @@ function haversine(lat1, lon1, lat2, lon2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+// -----------------------------
+// 📡 ESP32 Status Memory
+// -----------------------------
 let espStatus = {
   distance: 0,
   targetDistance: 0,
@@ -30,7 +35,9 @@ let espStatus = {
   navigationActive: false,
 };
 
-// ESP → server: status updates
+// -----------------------------
+// 🔄 ESP → Server: Status Updates
+// -----------------------------
 router.post("/esp-status", (req, res) => {
   espStatus = {
     ...espStatus,
@@ -44,17 +51,23 @@ router.post("/esp-status", (req, res) => {
   res.json({ message: "Status received" });
 });
 
-// Frontend → server: fetch latest ESP status
+// -----------------------------
+// 📥 Frontend → Server: Get Latest ESP Status
+// -----------------------------
 router.get("/get-status", (req, res) => {
   res.json(espStatus);
 });
 
-// Home route
+// -----------------------------
+// 🏠 Home Route
+// -----------------------------
 router.get("/", (_, res) => {
   res.render("index", { title: "GPS Navigation", espStatus });
 });
 
-// Frontend → server: set coordinates & calculate route
+// -----------------------------
+// 📍 Frontend → Server: Set Target & Calculate Route
+// -----------------------------
 router.post("/send-coordinates", async (req, res) => {
   const { latitude, longitude } = req.body;
   const apiKey = "5b3ce3597851110001cf62489dfc1ea87c8e49589e4456b25f858f02";
@@ -88,28 +101,36 @@ router.post("/send-coordinates", async (req, res) => {
     // Calculate straight-line distance first
     const directDistance = haversine(esp_lat, esp_long, latitude, longitude);
 
-    // If distance < 30 m, skip API and use direct path
+    // ✅ Short distance: use direct path instead of API
     if (directDistance < 30) {
-      espStatus.waypoints = [
+      // Clear any old route
+      espStatus.waypoints = [];
+      espStatus.navigationActive = false;
+      espStatus.targetDistance = (directDistance / 1000).toFixed(3);
+
+      // Only set direct source-target waypoints
+      const directPath = [
         { lat: esp_lat, lon: esp_long },
         { lat: latitude, lon: longitude },
       ];
-      espStatus.targetDistance = (directDistance / 1000).toFixed(3);
-      espStatus.navigationActive = false;
+
+      espStatus.waypoints = directPath;
 
       console.log(
-        `Short route (${directDistance.toFixed(1)} m) — direct path used.`
+        `Short route (${directDistance.toFixed(1)} m) — using direct path only.`
       );
+
       return res.json({
-        message: "Short route, direct path set",
+        message: "Short route (<30m) — using direct path only",
         distance: (directDistance / 1000).toFixed(3),
         duration: 0,
         targetLat: latitude,
         targetLon: longitude,
+        waypoints: directPath,
       });
     }
 
-    // Otherwise, request route from ORS (foot-walking mode)
+    // 🧭 Otherwise, request route from ORS (foot-walking)
     const response = await axios.get(
       "https://api.openrouteservice.org/v2/directions/foot-walking",
       {
@@ -162,7 +183,9 @@ router.post("/send-coordinates", async (req, res) => {
   }
 });
 
-// ✅ ESP → server: fetch waypoints (only if navigation is active)
+// -----------------------------
+// 🚗 ESP → Server: Get Waypoints (Only if Active)
+// -----------------------------
 router.get("/get-waypoints", (req, res) => {
   if (!espStatus.navigationActive) {
     return res.status(200).json({ message: "Navigation inactive." });
@@ -179,23 +202,32 @@ router.get("/get-waypoints", (req, res) => {
   });
 });
 
-// ✅ Frontend → server: start navigation
+// -----------------------------
+// ▶️ Frontend → Server: Start Navigation
+// -----------------------------
 router.post("/start-navigation", (req, res) => {
   if (!espStatus.waypoints.length) {
     return res
       .status(400)
       .json({ message: "No waypoints set. Set a target first." });
   }
+
   espStatus.navigationActive = true;
   console.log("✅ Navigation started (flag=true)");
   res.json({ message: "Navigation started. ESP will now fetch waypoints." });
 });
 
-// ✅ Frontend → server: stop navigation
+// -----------------------------
+// ⏹️ Frontend → Server: Stop Navigation
+// -----------------------------
 router.post("/stop-navigation", (req, res) => {
   espStatus.navigationActive = false;
-  console.log("🛑 Navigation stopped (flag=false)");
-  res.json({ message: "Navigation stopped." });
+  espStatus.waypoints = []; // clear any old route
+  console.log("🛑 Navigation stopped and waypoints cleared.");
+  res.json({ message: "Navigation stopped and waypoints cleared." });
 });
 
+// -----------------------------
+// Export Router
+// -----------------------------
 module.exports = router;
