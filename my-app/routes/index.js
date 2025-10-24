@@ -32,6 +32,19 @@ router.post("/esp-status", (req, res) => {
 router.get("/get-status", (_, res) => res.json(espStatus));
 
 // -----------------------------
+// 📥 ESP → Server: Get Target Coordinates
+// -----------------------------
+router.get("/get-target", (_, res) => {
+  if (espStatus.targetLat == null || espStatus.targetLon == null) {
+    return res.status(404).json({ message: "No target set." });
+  }
+  res.json({
+    targetLat: espStatus.targetLat,
+    targetLon: espStatus.targetLon,
+  });
+});
+
+// -----------------------------
 // 🏠 Home Route
 // -----------------------------
 router.get("/", (_, res) =>
@@ -52,25 +65,17 @@ router.post("/set-target", (req, res) => {
   console.log(`📍 Target coordinates set: ${latitude}, ${longitude}`);
   res.json({ message: "Target coordinates stored successfully." });
 });
-
 // -----------------------------
-// 📡 Frontend → Server: Send Coordinates to ESP
+// ▶️ Start Navigation
 // -----------------------------
-router.post("/send-coordinates", (req, res) => {
+router.post("/start-navigation", (req, res) => {
   if (espStatus.targetLat == null || espStatus.targetLon == null) {
     return res.status(400).json({ message: "No target set." });
   }
 
-  // The ESP should be configured to poll /get-target, or you can push directly via another protocol
-  console.log(
-    `📡 Sending target to ESP: Lat=${espStatus.targetLat}, Lon=${espStatus.targetLon}`
-  );
-
-  res.json({
-    message: "Target coordinates sent to ESP",
-    targetLat: espStatus.targetLat,
-    targetLon: espStatus.targetLon,
-  });
+  espStatus.navigationActive = true;
+  console.log("🚀 Navigation started.");
+  res.json({ message: "Navigation started." });
 });
 
 // -----------------------------

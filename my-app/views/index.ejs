@@ -100,10 +100,6 @@
           Stop
         </button>
         <div id="navStatus" style="margin-top: 10px; font-weight: bold"></div>
-        <div
-          id="waypointsDebug"
-          style="margin-top: 10px; font-weight: bold; color: blue"
-        ></div>
       </div>
 
       <script>
@@ -190,10 +186,9 @@
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ latitude, longitude }),
                   });
-                  const data = await res.json();
                   statusBox.innerText = res.ok
                     ? `✅ Current location stored as target (Lat=${latitude}, Lon=${longitude})`
-                    : `❌ ${data.message || "Failed to set location"}`;
+                    : `❌ Failed to set location`;
                 } catch {
                   statusBox.innerText = "❌ Network error.";
                 }
@@ -204,38 +199,22 @@
             );
           });
 
-        // --- Start navigation with waypoint confirmation ---
+        // --- Start navigation ---
+        // --- Start navigation ---
         document
           .getElementById("startNav")
           .addEventListener("click", async () => {
             const navStatus = document.getElementById("navStatus");
-            navStatus.innerText = "⏳ Sending target to ESP...";
+            navStatus.innerText = "⏳ Starting navigation...";
 
             try {
-              const currentStatus = await fetch("/get-status").then((r) =>
-                r.json()
-              );
-              if (
-                currentStatus.targetLat == null ||
-                currentStatus.targetLon == null
-              ) {
-                navStatus.innerText = "❌ No target set.";
-                return;
-              }
-
-              // Send the target to ESP
-              const res = await fetch("/send-coordinates", { method: "POST" });
+              const res = await fetch("/start-navigation", { method: "POST" });
               const data = await res.json();
-
-              if (!res.ok) {
-                navStatus.innerText =
-                  "❌ " + (data.message || "Failed to send coordinates.");
-                return;
-              }
-
-              navStatus.innerText = `🚀 ${data.message} (Lat=${data.targetLat}, Lon=${data.targetLon})`;
-            } catch (err) {
-              navStatus.innerText = "❌ " + err.message;
+              navStatus.innerText = res.ok
+                ? "🚀 " + data.message
+                : "❌ " + (data.message || "Failed to start.");
+            } catch {
+              navStatus.innerText = "❌ Network error.";
             }
           });
 
@@ -244,9 +223,7 @@
           .getElementById("stopNav")
           .addEventListener("click", async () => {
             const navStatus = document.getElementById("navStatus");
-            const waypointsDebug = document.getElementById("waypointsDebug");
             navStatus.innerText = "⏳ Stopping navigation...";
-            waypointsDebug.innerText = "";
             try {
               const res = await fetch("/stop-navigation", { method: "POST" });
               const data = await res.json();
