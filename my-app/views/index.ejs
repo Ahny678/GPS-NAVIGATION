@@ -209,9 +209,7 @@
           .getElementById("startNav")
           .addEventListener("click", async () => {
             const navStatus = document.getElementById("navStatus");
-            const waypointsDebug = document.getElementById("waypointsDebug");
-            waypointsDebug.innerText = "";
-            navStatus.innerText = "⏳ Calculating route...";
+            navStatus.innerText = "⏳ Sending target to ESP...";
 
             try {
               const currentStatus = await fetch("/get-status").then((r) =>
@@ -225,42 +223,17 @@
                 return;
               }
 
-              // Step 1: calculate route
-              const res1 = await fetch("/send-coordinates", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  latitude: currentStatus.targetLat,
-                  longitude: currentStatus.targetLon,
-                }),
-              });
-              const routeData = await res1.json();
-              if (!res1.ok) {
+              // Send the target to ESP
+              const res = await fetch("/send-coordinates", { method: "POST" });
+              const data = await res.json();
+
+              if (!res.ok) {
                 navStatus.innerText =
-                  "❌ " + (routeData.message || "Failed to calculate route.");
+                  "❌ " + (data.message || "Failed to send coordinates.");
                 return;
               }
 
-              // Step 2: start navigation
-              const res2 = await fetch("/start-navigation", { method: "POST" });
-              const startData = await res2.json();
-              if (!res2.ok) {
-                navStatus.innerText =
-                  "❌ " + (startData.message || "Failed to start navigation.");
-                return;
-              }
-
-              navStatus.innerText = "🚀 " + startData.message;
-
-              // Step 3: fetch and show waypoints for confirmation
-              const wpRes = await fetch("/get-waypoints");
-              const wpData = await wpRes.json();
-              if (wpData.waypoints && wpData.waypoints.length) {
-                waypointsDebug.innerText =
-                  "📍 Waypoints: " + JSON.stringify(wpData.waypoints, null, 2);
-              } else {
-                waypointsDebug.innerText = "⚠️ No waypoints returned.";
-              }
+              navStatus.innerText = `🚀 ${data.message} (Lat=${data.targetLat}, Lon=${data.targetLon})`;
             } catch (err) {
               navStatus.innerText = "❌ " + err.message;
             }
