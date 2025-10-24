@@ -34,6 +34,20 @@ let espStatus = {
   waypoints: [],
   navigationActive: false,
 };
+// let espStatus = {
+//   distance: 0,
+//   targetDistance: 0,
+//   lat: 6.4288, // ✅ about 16–20 m away from your target
+//   lon: 3.3691, // ✅ close enough to trigger <30m
+//   yaw: 0,
+//   status: "Testing Mode", // ✅ So you can see it’s in test mode
+//   obstacle: "None",
+//   satellites: 10, // ✅ Pretend GPS fix is good
+//   targetLat: null,
+//   targetLon: null,
+//   waypoints: [],
+//   navigationActive: false,
+// };
 
 // -----------------------------
 // 🔄 ESP → Server: Status Updates
@@ -68,12 +82,29 @@ router.get("/", (_, res) => {
 // -----------------------------
 // 📍 Frontend → Server: Set Target & Calculate Route
 // -----------------------------
+
+// 🧭 Store Target Only (No route calculation)
+router.post("/set-target", (req, res) => {
+  const { latitude, longitude } = req.body;
+  if (!latitude || !longitude) {
+    return res.status(400).json({ message: "Invalid target coordinates." });
+  }
+
+  espStatus.targetLat = latitude;
+  espStatus.targetLon = longitude;
+  espStatus.navigationActive = false;
+
+  console.log(`📍 Target coordinates set manually: ${latitude}, ${longitude}`);
+  res.json({ message: "Target coordinates stored successfully." });
+});
+
 router.post("/send-coordinates", async (req, res) => {
   const { latitude, longitude } = req.body;
   const apiKey = "5b3ce3597851110001cf62489dfc1ea87c8e49589e4456b25f858f02";
 
-  const esp_lat = espStatus.lat;
-  const esp_long = espStatus.lon;
+  // Always pull latest ESP coordinates
+  const esp_lat = parseFloat(espStatus.lat);
+  const esp_long = parseFloat(espStatus.lon);
 
   espStatus.targetLat = latitude;
   espStatus.targetLon = longitude;
@@ -97,40 +128,39 @@ router.post("/send-coordinates", async (req, res) => {
     });
   }
 
+  // ✅ Step 1: Always compute distance first
+  const directDistance = haversine(esp_lat, esp_long, latitude, longitude);
+  console.log(`Computed direct distance: ${directDistance.toFixed(2)} m`);
+
+  // ✅ Step 2: Short distance (under 30 m) = skip ORS entirely
+  if (directDistance < 30) {
+    espStatus.waypoints = [
+      { lat: esp_lat, lon: esp_long },
+      { lat: latitude, lon: longitude },
+    ];
+    espStatus.navigationActive = false;
+    espStatus.targetDistance = directDistance.toFixed(2);
+
+    console.log(
+      `Short route (${directDistance.toFixed(1)} m) — using direct path only.`
+    );
+    console.log(
+      "📍 Waypoints (Direct Path):",
+      JSON.stringify(espStatus.waypoints, null, 2)
+    );
+
+    return res.json({
+      message: "Short route (<30 m) — using direct path only",
+      distance: directDistance.toFixed(2),
+      duration: 0,
+      targetLat: latitude,
+      targetLon: longitude,
+      waypoints: espStatus.waypoints,
+    });
+  }
+
+  // ✅ Step 3: Otherwise, fetch full route from ORS
   try {
-    // Calculate straight-line distance first
-    const directDistance = haversine(esp_lat, esp_long, latitude, longitude);
-
-    // ✅ Short distance: use direct path instead of API
-    if (directDistance < 30) {
-      // Clear any old route
-      espStatus.waypoints = [];
-      espStatus.navigationActive = false;
-      espStatus.targetDistance = (directDistance / 1000).toFixed(3);
-
-      // Only set direct source-target waypoints
-      const directPath = [
-        { lat: esp_lat, lon: esp_long },
-        { lat: latitude, lon: longitude },
-      ];
-
-      espStatus.waypoints = directPath;
-
-      console.log(
-        `Short route (${directDistance.toFixed(1)} m) — using direct path only.`
-      );
-
-      return res.json({
-        message: "Short route (<30m) — using direct path only",
-        distance: (directDistance / 1000).toFixed(3),
-        duration: 0,
-        targetLat: latitude,
-        targetLon: longitude,
-        waypoints: directPath,
-      });
-    }
-
-    // 🧭 Otherwise, request route from ORS (foot-walking)
     const response = await axios.get(
       "https://api.openrouteservice.org/v2/directions/foot-walking",
       {
@@ -151,7 +181,6 @@ router.post("/send-coordinates", async (req, res) => {
     const duration = route.properties.summary.duration / 60; // min
     const coordinates = route.geometry.coordinates;
 
-    // Set route waypoints
     espStatus.waypoints = coordinates.map(([lon, lat]) => ({ lat, lon }));
     espStatus.targetDistance = distance.toFixed(2);
     espStatus.navigationActive = false;
@@ -162,7 +191,7 @@ router.post("/send-coordinates", async (req, res) => {
       )} km (${duration.toFixed(1)} min)`
     );
 
-    res.json({
+    return res.json({
       message: "Route found successfully",
       distance: distance.toFixed(2),
       duration: duration.toFixed(1),
@@ -172,13 +201,13 @@ router.post("/send-coordinates", async (req, res) => {
   } catch (error) {
     if (error.response) {
       console.error("ORS Error:", error.response.data);
-      res.status(400).json({
+      return res.status(400).json({
         message: "Could not find a valid route between points",
         orsError: error.response.data,
       });
     } else {
       console.error("Error fetching route:", error.message);
-      res.status(500).json({ message: "Error calculating route" });
+      return res.status(500).json({ message: "Error calculating route" });
     }
   }
 });

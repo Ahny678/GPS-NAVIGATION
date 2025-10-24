@@ -131,7 +131,7 @@
             .catch((err) => console.error("Error fetching status:", err));
         }, 2000);
 
-        // --- Set target manually ---
+        // --- Set target manually (store only) ---
         document
           .getElementById("setTarget")
           .addEventListener("click", async () => {
@@ -149,21 +149,21 @@
             }
 
             try {
-              const res = await fetch("/send-coordinates", {
+              const res = await fetch("/set-target", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ latitude, longitude }),
               });
               const data = await res.json();
               statusBox.innerText = res.ok
-                ? `✅ Target set (Lat=${latitude}, Lon=${longitude})`
+                ? `✅ Target stored (Lat=${latitude}, Lon=${longitude})`
                 : `❌ ${data.message || "Failed to set target"}`;
             } catch {
               statusBox.innerText = "❌ Network error.";
             }
           });
 
-        // --- Use current coordinates ---
+        // --- Use current coordinates (store only) ---
         document
           .getElementById("useCurrentLocation")
           .addEventListener("click", () => {
@@ -178,14 +178,14 @@
                 const latitude = pos.coords.latitude;
                 const longitude = pos.coords.longitude;
                 try {
-                  const res = await fetch("/send-coordinates", {
+                  const res = await fetch("/set-target", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ latitude, longitude }),
                   });
                   const data = await res.json();
                   statusBox.innerText = res.ok
-                    ? `✅ Current location set as target (Lat=${latitude}, Lon=${longitude})`
+                    ? `✅ Current location stored as target (Lat=${latitude}, Lon=${longitude})`
                     : `❌ ${data.message || "Failed to set location"}`;
                 } catch {
                   statusBox.innerText = "❌ Network error.";
@@ -197,20 +197,47 @@
             );
           });
 
-        // --- Start navigation ---
+        // --- Start navigation (calculate + activate) ---
         document
           .getElementById("startNav")
           .addEventListener("click", async () => {
             const navStatus = document.getElementById("navStatus");
-            navStatus.innerText = "⏳ Starting navigation...";
+            navStatus.innerText = "⏳ Calculating route...";
             try {
-              const res = await fetch("/start-navigation", { method: "POST" });
-              const data = await res.json();
-              navStatus.innerText = res.ok
-                ? "✅ " + data.message
-                : "❌ " + (data.message || "Failed to start.");
-            } catch {
-              navStatus.innerText = "❌ Network error.";
+              // Get stored target
+              const currentStatus = await fetch("/get-status").then((r) =>
+                r.json()
+              );
+              if (!currentStatus.targetLat || !currentStatus.targetLon) {
+                navStatus.innerText = "❌ No target set.";
+                return;
+              }
+
+              // Step 1: Calculate route or direct path
+              const res1 = await fetch("/send-coordinates", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  latitude: currentStatus.targetLat,
+                  longitude: currentStatus.targetLon,
+                }),
+              });
+              const routeData = await res1.json();
+              if (!res1.ok) {
+                navStatus.innerText =
+                  "❌ " + (routeData.message || "Failed to calculate route.");
+                return;
+              }
+
+              // Step 2: Start navigation
+              navStatus.innerText = "✅ Route ready. Starting navigation...";
+              const res2 = await fetch("/start-navigation", { method: "POST" });
+              const startData = await res2.json();
+              navStatus.innerText = res2.ok
+                ? "🚀 " + startData.message
+                : "❌ " + (startData.message || "Failed to start navigation.");
+            } catch (err) {
+              navStatus.innerText = "❌ " + err.message;
             }
           });
 
