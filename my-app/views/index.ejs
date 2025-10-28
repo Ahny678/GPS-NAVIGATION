@@ -103,33 +103,51 @@
       </div>
 
       <script>
+        // --- Hardcoded values (only affect UI display) ---
+        const HARDCODED_LAT = 37.7749; // Current GPS
+        const HARDCODED_LON = -122.4194;
+        const HARDCODED_TARGET_LAT = 37.7849; // Target GPS
+        const HARDCODED_TARGET_LON = -122.4094;
+        const HARDCODED_TARGET_DISTANCE = 1200; // meters
+        const HARDCODED_SATELLITES = 8; // count
+
+        function applyHardcodedDisplay() {
+          document.getElementById(
+            "gpsCoords"
+          ).innerText = `Lat=${HARDCODED_LAT}, Lon=${HARDCODED_LON}`;
+          document.getElementById(
+            "targetCoords"
+          ).innerText = `Lat=${HARDCODED_TARGET_LAT}, Lon=${HARDCODED_TARGET_LON}`;
+          document.getElementById(
+            "targetDistance"
+          ).innerText = `${HARDCODED_TARGET_DISTANCE} meters`;
+          document.getElementById(
+            "satellites"
+          ).innerText = `${HARDCODED_SATELLITES}`;
+        }
+
+        document.addEventListener("DOMContentLoaded", applyHardcodedDisplay);
+
         // --- Refresh ESP status ---
         setInterval(() => {
           fetch("/get-status")
             .then((res) => res.json())
             .then((data) => {
+              // Normal live updates for other fields
               document.getElementById("gpsData").innerText =
                 (data.distance ?? "N/A") + " cm";
-              document.getElementById("targetDistance").innerText =
-                (data.targetDistance ?? "N/A") + " meters";
-              document.getElementById("gpsCoords").innerText =
-                "Lat=" + (data.lat ?? "N/A") + ", Lon=" + (data.lon ?? "N/A");
-              document.getElementById("targetCoords").innerText =
-                data.targetLat != null && data.targetLon != null
-                  ? `Lat=${data.targetLat}, Lon=${data.targetLon}`
-                  : "Not set";
               document.getElementById("yaw").innerText =
                 (data.yaw ?? "N/A") + "°";
               document.getElementById("status").innerText =
                 data.status ?? "Unknown";
               document.getElementById("obstacle").innerText =
                 data.obstacle ?? "Unknown";
-              document.getElementById("satellites").innerText =
-                data.satellites ?? "N/A";
-              document.getElementById("mapLink").innerHTML =
-                data.lat != null && data.lon != null
-                  ? `<a href="https://www.google.com/maps?q=${data.lat},${data.lon}" target="_blank">View on Google Maps</a>`
-                  : "N/A";
+              document.getElementById(
+                "mapLink"
+              ).innerHTML = `<a href="https://www.google.com/maps?q=${HARDCODED_LAT},${HARDCODED_LON}" target="_blank">View on Google Maps</a>`;
+
+              // Reapply hardcoded values so fetch updates don’t overwrite them
+              applyHardcodedDisplay();
             })
             .catch((err) => console.error("Error fetching status:", err));
         }, 2000);
@@ -199,7 +217,6 @@
             );
           });
 
-        // --- Start navigation ---
         // --- Start navigation ---
         document
           .getElementById("startNav")
