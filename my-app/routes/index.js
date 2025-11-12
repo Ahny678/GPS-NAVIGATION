@@ -21,15 +21,35 @@ let espStatus = {
 // -----------------------------
 // 🔄 ESP → Server: Status Updates
 // -----------------------------
+// router.post("/esp-status", (req, res) => {
+//   const { ...rest } = req.body;
+//   espStatus = {
+//     ...espStatus,
+//     ...rest,
+//     distance: rest.distance_to_obstacle, // <- add this
+//     targetDistance: rest.distance_to_target, // <- add this
+//     status: "Connected",
+//   };
+//   console.log("ESP32 Status Update:", espStatus);
+//   res.json({ message: "Status received" });
+// });
+
 router.post("/esp-status", (req, res) => {
-  const { ...rest } = req.body;
+  const { distance_to_obstacle, distance_to_target, ...rest } = req.body;
+
   espStatus = {
     ...espStatus,
     ...rest,
-    distance: rest.distance_to_obstacle, // <- add this
-    targetDistance: rest.distance_to_target, // <- add this
+    distance: distance_to_obstacle ?? espStatus.distance,
+    targetDistance: distance_to_target ?? espStatus.targetDistance,
     status: "Connected",
+
+    // 🔒 Keep existing navigation & target info
+    targetLat: espStatus.targetLat,
+    targetLon: espStatus.targetLon,
+    navigationActive: espStatus.navigationActive,
   };
+
   console.log("ESP32 Status Update:", espStatus);
   res.json({ message: "Status received" });
 });
